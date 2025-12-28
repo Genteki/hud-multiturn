@@ -1,0 +1,8 @@
+[
+    {
+        "env": {
+            "name": "hud-external/hud-multiturn"
+        },
+        "scenario": "bulb"
+    }
+]

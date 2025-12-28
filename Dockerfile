@@ -5,15 +5,14 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Install hud-python from feature branch
-RUN pip install -e git+https://github.com/Genteki/hud-python.git@Feature--multi-turn-agent-loop
+RUN pip install -e git+https://github.com/Genteki/hud-python.git@Feature--multi-turn-agent-loop#egg=hud
 
 # Install project dependencies
 COPY pyproject.toml ./
 RUN pip install .
 
 # Copy source code
-COPY server/ ./server/
-COPY backend/ ./backend/
+COPY . .
 
 ENV AGENT_BACKEND_PORT=8001
 ENV USER_BACKEND_PORT=8002

@@ -98,8 +98,8 @@ async def _run_conversation_loop(
             user_messages = await simulated_user.get_system_messages()
             user_messages.extend(await simulated_user.format_message(user_prompt))
 
-            # User can call tools and respond (limit to 2 iterations)
-            max_user_iterations = 2
+            # User can call tools and respond
+            max_user_iterations = 6
             for _ in range(max_user_iterations):
                 user_response_obj = await simulated_user.get_response(user_messages)
 

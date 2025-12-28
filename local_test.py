@@ -9,7 +9,7 @@ import asyncio
 import hud
 from openai import AsyncOpenAI
 from hud.agents.claude import ClaudeAgent
-from hud.agents import OpenAIChatAgent
+from hud.agents import OpenAIChatAgent, multi_turn_run
 
 from env import env
 
@@ -47,7 +47,6 @@ async def test_multi_turn():
         print("Skipping: API key not set. Set HUD_API_KEY or OPENAI_API_KEY environment variable.")
         return
 
-    from multi_turn import multi_turn_run
     from prompts import AGENT_INSTRUCTION, USER_INSTRUCTION
 
     # Create agent with butler instructions
