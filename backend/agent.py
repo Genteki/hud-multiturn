@@ -3,7 +3,7 @@
 import sys
 import logging
 from fastapi import FastAPI
-from .db import shared_db, DB_PATH
+from .db import DB, DB_PATH
 
 logging.basicConfig(
     stream=sys.stderr,
@@ -24,8 +24,9 @@ def health():
 @app.post("/reset")
 def reset():
     """Reset the shared state."""
-    shared_db.reset()
-    shared_db.dump(DB_PATH)
+    db = DB.load(DB_PATH)
+    db.reset()
+    db.dump(DB_PATH)
     logger.info("State reset")
     return {"ok": True}
 
@@ -33,12 +34,14 @@ def reset():
 @app.post("/switch")
 def switch():
     """Flip the value of `agent_switch`."""
-    shared_db.agent_switch = not shared_db.agent_switch
-    shared_db.dump(DB_PATH)
-    logger.info(f"Agent switch flipped to {shared_db.agent_switch}")
+    db = DB.load(DB_PATH)
+    db.agent_switch = not db.agent_switch
+    db.dump(DB_PATH)
+    logger.info(f"Agent switch flipped to {db.agent_switch}")
     return {"ok": True, "message": "Agent switch flipped"}
 
 @app.get("/state")
 def state() -> bool:
     """Get the status of bulb"""
-    return (shared_db.agent_switch and shared_db.user_switch)
+    db = DB.load(DB_PATH)
+    return db.agent_switch and db.user_switch

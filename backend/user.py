@@ -3,7 +3,7 @@
 import sys
 import logging
 from fastapi import FastAPI
-from .db import shared_db, DB_PATH
+from .db import DB, DB_PATH
 
 logging.basicConfig(
     stream=sys.stderr,
@@ -24,8 +24,9 @@ def health():
 @app.post("/reset")
 def reset():
     """Reset the shared state."""
-    shared_db.reset()
-    shared_db.dump(DB_PATH)
+    db = DB.load(DB_PATH)
+    db.reset()
+    db.dump(DB_PATH)
     logger.info("State reset")
     return {"ok": True}
 
@@ -33,16 +34,18 @@ def reset():
 @app.post("/switch")
 def switch():
     """Flip the value of `user_switch`."""
-    shared_db.user_switch = not shared_db.user_switch
-    shared_db.dump(DB_PATH)
-    logger.info(f"User switch flipped to {shared_db.user_switch}")
+    db = DB.load(DB_PATH)
+    db.user_switch = not db.user_switch
+    db.dump(DB_PATH)
+    logger.info(f"User switch flipped to {db.user_switch}")
     return {"ok": True, "message": "User switch flipped"}
 
 
 @app.get("/check_status")
 def check_status():
     """Check if the bulb is lighting. Bulb is on if both switches are True."""
-    bulb_on = shared_db.agent_switch and shared_db.user_switch
+    db = DB.load(DB_PATH)
+    bulb_on = db.agent_switch and db.user_switch
     logger.info(f"Bulb status: {'ON' if bulb_on else 'OFF'}")
     return {"bulb_on": bulb_on, "message": f"The bulb is {'ON' if bulb_on else 'OFF'}"}
 

@@ -51,22 +51,26 @@ async def test_multi_turn():
     from prompts import AGENT_INSTRUCTION, USER_INSTRUCTION
 
     # Create agent with butler instructions
+    # Agent can only use 'switch' tool (for agent_switch)
     agent = OpenAIChatAgent.create(
         model="gpt-5",
-        system_prompt=AGENT_INSTRUCTION
+        system_prompt=AGENT_INSTRUCTION,
+        allowed_tools=["switch"]
     )
 
     # Create simulated user
+    # User can use 'user_switch' and 'check_status' tools
     user = OpenAIChatAgent.create(
         model="gpt-4o-mini",
-        system_prompt=USER_INSTRUCTION
+        system_prompt=USER_INSTRUCTION,
+        allowed_tools=["user_switch", "check_status"]
     )
 
     task = env("bulb")
 
     async with hud.eval(task) as ctx:
         # Instead of: await agent.run(ctx, max_steps=30)
-        await multi_turn_run(ctx, agent, user, max_turns=5)
+        await multi_turn_run(ctx, agent, user, max_steps=10)
 
         print(f"\nReward: {ctx.reward}")
         print(f"Success: {ctx.success}")

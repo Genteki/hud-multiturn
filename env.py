@@ -32,8 +32,29 @@ env = Environment(name="multi-turn")
 @env.tool()
 async def switch() -> str:
     """Flip agent switch"""
-    await agent_client.post("/switch")
-    return "agent_switch turned"
+    response = await agent_client.post("/switch")
+    return "agent_switch flipped"
+
+@env.tool()
+async def user_switch() -> str:
+    """Flip user switch"""
+    response = await user_client.post("/switch")
+    return "user_switch flipped"
+
+@env.tool()
+async def check_status() -> str:
+    """Check if the bulb is currently lighting. Returns whether bulb is ON or OFF."""
+    response = await user_client.get("/check_status")
+    response.raise_for_status()
+
+    # Check if response has content
+    if not response.content:
+        logger.error("check_status: Empty response from user backend")
+        return "Error: Unable to check bulb status"
+
+    result = response.json()
+    bulb_on = result.get("bulb_on", False)
+    return f"The bulb is {'ON' if bulb_on else 'OFF'}"
     
 @env.initialize
 async def init() -> None:
