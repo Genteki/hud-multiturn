@@ -52,16 +52,16 @@ async def test_multi_turn():
 
     # Create agent with butler instructions
     # Agent can only use 'switch' tool (for agent_switch)
-    agent = OpenAIChatAgent.create(
-        model="gpt-5",
+    agent = ClaudeAgent.create(
+        model="claude-haiku-4-5",
         system_prompt=AGENT_INSTRUCTION,
-        allowed_tools=["switch"]
+        allowed_tools=["agent_switch"]
     )
 
     # Create simulated user
     # User can use 'user_switch' and 'check_status' tools
-    user = OpenAIChatAgent.create(
-        model="gpt-4o-mini",
+    user = ClaudeAgent.create(
+        model="claude-haiku-4-5",
         system_prompt=USER_INSTRUCTION,
         allowed_tools=["user_switch", "check_status"]
     )

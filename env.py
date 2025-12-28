@@ -30,7 +30,7 @@ user_client = httpx.AsyncClient(base_url=USER_BACKEND_URL, timeout=10.0)
 env = Environment(name="multi-turn")
 
 @env.tool()
-async def switch() -> str:
+async def agent_switch() -> str:
     """Flip agent switch"""
     response = await agent_client.post("/switch")
     return "agent_switch flipped"

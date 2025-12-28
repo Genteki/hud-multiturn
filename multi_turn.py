@@ -1,7 +1,4 @@
-"""Multi-turn agent interaction framework.
-
-Provides utilities for running multi-turn conversations between an agent and a simulated user.
-"""
+"""Multi-turn agent interaction framework for HUD."""
 
 import asyncio
 import logging
@@ -9,120 +6,76 @@ from typing import Any
 
 from hud.eval.context import EvalContext
 from hud.types import Trace
+from hud.agents.base import text_to_blocks
 
 logger = logging.getLogger(__name__)
+
+STOP_SIGNAL = "###STOP###"
+
+
+def _check_stop_signal(text: str) -> bool:
+    """Check if text contains the conversation stop signal."""
+    if STOP_SIGNAL in text:
+        logger.info(f"Detected stop signal: {STOP_SIGNAL}")
+        return True
+    return False
 
 
 async def multi_turn_run(
     ctx: EvalContext,
-    agent: Any,  # MCPAgent instance
-    simulated_user: Any,  # MCPAgent instance for user simulation
+    agent: Any,
+    simulated_user: Any,
     max_steps: int = 30,
 ) -> Trace:
     """
-    Run agent with multi-turn conversation loop.
+    Run multi-turn conversation between agent and simulated user.
 
-    Drop-in replacement for `await agent.run(ctx)` that enables turn-based
-    conversation between agent and simulated user.
-
-    Args:
-        ctx: EvalContext from hud.eval()
-        agent: The main agent (MCPAgent) trying to complete the task
-        simulated_user: A simulated user agent (MCPAgent) that responds
-        max_steps: Maximum number of agent steps (not turns)
-
-    Returns:
-        Trace: The final trace from execution
-
-    Example:
-        ```python
-        from hud.agents.openai_chat import OpenAIChatAgent
-        from multi_turn import multi_turn_run
-        from prompts import AGENT_INSTRUCTION, USER_INSTRUCTION
-
-        agent = OpenAIChatAgent.create(
-            model="gpt-5",
-            system_prompt=AGENT_INSTRUCTION
-        )
-        user = OpenAIChatAgent.create(
-            model="gpt-4o-mini",
-            system_prompt=USER_INSTRUCTION
-        )
-
-        task = env("bulb")
-        async with hud.eval(task) as ctx:
-            # Instead of: await agent.run(ctx)
-            await multi_turn_run(ctx, agent, user, max_steps=30)
-        ```
+    Drop-in replacement for `await agent.run(ctx)`.
+    Conversation ends when user sends ###STOP### signal.
     """
-    from hud.agents.base import text_to_blocks
-
     if not isinstance(ctx, EvalContext):
         raise TypeError(f"ctx must be EvalContext, got {type(ctx).__name__}")
-
     if not ctx.prompt:
-        raise ValueError("ctx.prompt is not set - did the scenario setup run?")
+        raise ValueError("ctx.prompt is not set")
 
-    # Store context for tool calls
-    agent.ctx = ctx
-    simulated_user.ctx = ctx
-
-    # Initialize tools from context
-    if not agent._initialized:
-        await agent._initialize_from_ctx(ctx)
-        # Filter tools for agent if allowed_tools is set
-        if hasattr(agent.config, 'allowed_tools') and agent.config.allowed_tools:
-            agent._available_tools = [
-                t for t in agent._available_tools
-                if t.name in agent.config.allowed_tools
-            ]
-            agent._tool_map = {t.name: t for t in agent._available_tools}
-            agent.console.info(
-                f"Filtered to {len(agent._available_tools)} allowed tools: "
-                f"{', '.join([t.name for t in agent._available_tools])}"
-            )
-            agent._on_tools_ready()  # Rebuild provider-specific tool formats
-
-    if not simulated_user._initialized:
-        await simulated_user._initialize_from_ctx(ctx)
-        # Filter tools for user if allowed_tools is set
-        if hasattr(simulated_user.config, 'allowed_tools') and simulated_user.config.allowed_tools:
-            simulated_user._available_tools = [
-                t for t in simulated_user._available_tools
-                if t.name in simulated_user.config.allowed_tools
-            ]
-            simulated_user._tool_map = {t.name: t for t in simulated_user._available_tools}
-            simulated_user.console.info(
-                f"Filtered to {len(simulated_user._available_tools)} allowed tools: "
-                f"{', '.join([t.name for t in simulated_user._available_tools])}"
-            )
-            simulated_user._on_tools_ready()  # Rebuild provider-specific tool formats
+    # Setup agents
+    agent.ctx = simulated_user.ctx = ctx
+    await _initialize_agent_with_filters(agent, ctx)
+    await _initialize_agent_with_filters(simulated_user, ctx)
 
     try:
-        # Run custom conversation loop
         result = await _run_conversation_loop(
             agent, simulated_user, text_to_blocks(ctx.prompt), max_steps=max_steps
         )
-
-        # Submit final answer to context (only if scenario is running)
         if result.content and ctx.has_scenario:
             await ctx.submit(result.content)
-
         return result
-
     except Exception as e:
-        logger.exception("Error while running multi-turn agent:")
-        return Trace(
-            reward=0.0,
-            done=True,
-            content=f"Agent failed with error: {e}",
-            isError=True,
-            info={"error": str(e)},
-        )
+        logger.exception("Multi-turn agent error:")
+        return Trace(done=True, content=f"Error: {e}", isError=True, info={"error": str(e)})
     finally:
-        # Cleanup auto-created resources
         await agent._cleanup()
         await simulated_user._cleanup()
+
+
+async def _initialize_agent_with_filters(agent: Any, ctx: EvalContext) -> None:
+    """Initialize agent and apply tool filtering if configured."""
+    if agent._initialized:
+        return
+
+    await agent._initialize_from_ctx(ctx)
+
+    # Apply allowed_tools filter if configured
+    if hasattr(agent.config, 'allowed_tools') and agent.config.allowed_tools:
+        agent._available_tools = [
+            t for t in agent._available_tools if t.name in agent.config.allowed_tools
+        ]
+        agent._tool_map = {t.name: t for t in agent._available_tools}
+        agent.console.info(
+            f"Filtered to {len(agent._available_tools)} tools: "
+            f"{', '.join(t.name for t in agent._available_tools)}"
+        )
+        agent._on_tools_ready()
 
 
 async def _run_conversation_loop(
@@ -132,28 +85,10 @@ async def _run_conversation_loop(
     *,
     max_steps: int = 30,
 ) -> Trace:
-    """
-    Core conversation loop with turn-based interaction.
-
-    This implements a turn-based conversation:
-    1. Agent acts (tool calls and/or message)
-    2. When agent sends a message, user simulator responds
-    3. User response is added to messages, loop continues
-    4. Stops when max_steps reached or conversation naturally ends
-    """
+    """Core conversation loop with turn-based interaction."""
     final_response = None
     error = None
     messages: list[Any] = []
-
-    # Stop signal detection
-    STOP_SIGNAL = "###STOP###"
-
-    def check_for_stop_signal(text: str) -> bool:
-        """Check if text contains the conversation stop signal."""
-        if STOP_SIGNAL in text:
-            logger.info(f"Detected stop signal: {STOP_SIGNAL}")
-            return True
-        return False
 
     async def get_user_response(agent_message: str) -> str:
         """Get simulated user response to agent's message."""
@@ -172,10 +107,6 @@ async def _run_conversation_loop(
                 if user_response_obj.tool_calls:
                     logger.info(f"User executing {len(user_response_obj.tool_calls)} tool(s)")
                     user_tool_results = await simulated_user.call_tools(user_response_obj.tool_calls)
-
-                    # Add user's tool call message if any content
-                    if user_response_obj.content:
-                        user_messages.extend(await simulated_user.format_message(user_response_obj.content))
 
                     # Format tool results and add to messages
                     tool_messages = await simulated_user.format_tool_results(
@@ -225,11 +156,6 @@ async def _run_conversation_loop(
                     tool_calls = response.tool_calls
                     tool_results = await agent.call_tools(tool_calls)
 
-                    # Add agent's tool call message to history
-                    # OpenAI Chat requires the assistant message with tool calls
-                    if response.content:
-                        messages.extend(await agent.format_message(response.content))
-
                     # Format tool results and add to messages
                     tool_messages = await agent.format_tool_results(tool_calls, tool_results)
                     messages.extend(tool_messages)
@@ -250,7 +176,7 @@ async def _run_conversation_loop(
                         agent.console.info(f"[bold green]👤 User:[/bold green] {user_response}")
 
                         # Check for stop signal in user response
-                        if check_for_stop_signal(user_response):
+                        if _check_stop_signal(user_response):
                             agent.console.info("Conversation ended by user signal")
                             final_response = response
                             break
@@ -278,7 +204,7 @@ async def _run_conversation_loop(
                     agent.console.info(f"[bold green]👤 User:[/bold green] {user_response}")
 
                     # Check for stop signal in user response
-                    if check_for_stop_signal(user_response):
+                    if _check_stop_signal(user_response):
                         agent.console.info("Conversation ended by user signal")
                         final_response = response
                         break
