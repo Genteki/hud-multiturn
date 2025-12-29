@@ -3,7 +3,7 @@
 ## Task Description
 
 ### Situation
-In Alice's house, a **bulb** is controlled by `agent_switch` and `user_switch`. The bulb will be lighted if and only if two switches are both `True`. 
+In Alice's house, a **bulb** is controlled by `agent_switch` and `user_switch`. The bulb will be lit if and only if two switches are both `True`. 
 
 Alice can flip the `user_switch` while the agent can flip `agent_switch`. However, they don't have access to the current value of switchess.
 
