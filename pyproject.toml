@@ -5,7 +5,10 @@ description = "HUD Environment Example for Multi-turn Agent Loop"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi",
-    "anthropic"
+    "google-api-python-client",
+    "google-auth",
+    "anthropic",
+    "google-genai",
 ]
 
 [build-system]
