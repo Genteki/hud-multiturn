@@ -32,13 +32,13 @@ env = Environment(name="multi-turn")
 @env.tool()
 async def agent_switch() -> str:
     """Flip agent switch"""
-    response = await agent_client.post("/switch")
+    _ = await agent_client.post("/switch")
     return "agent_switch flipped"
 
 @env.tool()
 async def user_switch() -> str:
     """Flip user switch"""
-    response = await user_client.post("/switch")
+    _ = await user_client.post("/switch")
     return "user_switch flipped"
 
 @env.tool()
