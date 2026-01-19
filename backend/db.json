@@ -1,4 +1,4 @@
 {
-  "agent_switch": true,
-  "user_switch": true
+  "agent_switch": false,
+  "user_switch": false
 }

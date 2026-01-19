@@ -8,8 +8,7 @@ import os
 import asyncio
 import hud
 from openai import AsyncOpenAI
-from hud.agents.claude import ClaudeAgent
-from hud.agents import OpenAIChatAgent, multi_turn_run
+from hud.agents import OpenAIChatAgent, multi_turn_run, create_agent
 
 from env import env
 
@@ -51,20 +50,16 @@ async def test_multi_turn():
 
     # Create agent with butler instructions
     # Agent can only use 'switch' tool (for agent_switch)
-    agent = ClaudeAgent.create(
-        model="claude-haiku-4-5",
+    agent = create_agent(
+        model="claude-haiku-4-5", 
         system_prompt=AGENT_INSTRUCTION,
         allowed_tools=["agent_switch"]
     )
-
-    # Create simulated user
-    # User can use 'user_switch' and 'check_status' tools
-    user = ClaudeAgent.create(
-        model="claude-haiku-4-5",
+    user = create_agent(
+        model="claude-haiku-4-5", 
         system_prompt=USER_INSTRUCTION,
-        allowed_tools=["user_switch", "check_status"]
+        allowed_tools=["agent_switch"]
     )
-
     task = env("bulb")
 
     async with hud.eval(task) as ctx:
