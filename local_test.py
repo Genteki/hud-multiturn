@@ -58,7 +58,7 @@ async def test_multi_turn():
     user = create_agent(
         model="claude-haiku-4-5", 
         system_prompt=USER_INSTRUCTION,
-        allowed_tools=["agent_switch"]
+        allowed_tools=["user_switch", "check_status"]
     )
     task = env("bulb")
 
