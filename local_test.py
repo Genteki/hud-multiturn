@@ -8,7 +8,8 @@ import os
 import asyncio
 import hud
 from openai import AsyncOpenAI
-from hud.agents import OpenAIChatAgent, multi_turn_run, create_agent
+from hud.agents import OpenAIChatAgent, create_agent
+from loop import multi_turn_run
 
 from env import env
 

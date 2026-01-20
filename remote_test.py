@@ -9,6 +9,7 @@ async def main():
     ds = "multiturn-test"
     model = "claude-haiku-4-5"
     tasks = load_tasks(ds)
+    
     async with hud.eval(tasks, max_concurrent=10) as ctx:
         assistant = create_agent(
             model= model, 
@@ -20,7 +21,6 @@ async def main():
             system_prompt=USER_INSTRUCTION,
             allowed_tools=["user_switch", "check_status"]
         )
-        # await assistant.run_multi_round(ctx=ctx, simulated_user=user, max_steps=10)
         await multi_turn_run(ctx=ctx, agent=assistant, simulated_user=user, max_steps=10)
 
 if __name__ == "__main__":
