@@ -18,4 +18,4 @@ ENV AGENT_BACKEND_PORT=8001
 ENV USER_BACKEND_PORT=8002
 
 # Start both backend apps, then run mcp server
-CMD ["sh", "-c", "uvicorn backend.agent:app --host 0.0.0.0 --port $AGENT_BACKEND_PORT --log-level warning >&2 & uvicorn backend.user:app --host 0.0.0.0 --port $USER_BACKEND_PORT --log-level warning >&2 & sleep 0.5 && hud dev env:env --stdio"]
+CMD ["sh", "-c", "uvicorn backend.agent:app --host 0.0.0.0 --port $AGENT_BACKEND_PORT --log-level warning >&2 & uvicorn backend.user:app --host 0.0.0.0 --port $USER_BACKEND_PORT --log-level warning >&2 & sleep 0.5 && hud run env:env --stdio"]
