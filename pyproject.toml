@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "HUD Environment Example for Multi-turn Agent Loop"
 requires-python = ">=3.11"
 dependencies = [
+    "hud-python",
     "fastapi",
     "google-api-python-client",
     "google-auth",

@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Install hud-python from feature branch
-RUN pip install -e git+https://github.com/Genteki/hud-python.git@Feature--multi-turn-agent-loop#egg=hud-python
+# RUN pip install -e git+https://github.com/Genteki/hud-python.git@Feature--multi-turn-agent-loop#egg=hud-python
 
 # Install project dependencies
 COPY pyproject.toml ./
